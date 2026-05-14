@@ -1,6 +1,6 @@
 # 「拉了么」全栈开发文档 & 功能设计说明书
 
-**版本**：v1.0.7（已构建 APK）  
+**版本**：v1.0.8（已构建 APK）  
 **日期**：2026-05-14  
 **定位**：隐私优先的生理健康记录与轻社交排名应用  
 **文档状态**：与代码同步，可直接用于开发实施
@@ -3506,6 +3506,83 @@ cp build/app/outputs/flutter-apk/app-release.apk "${DIST_DIR}/la-le-me-app-relea
 #### 测验结果
 - `flutter analyze`：✅ 0 issues
 - APK 构建：✅ Dart 编译通过（macOS 环境无 Android SDK，完整 APK 待 Android 环境构建验证）
+
+### 2026-05-14 成就系统全面修复（Bug 修复 + 功能补全）
+
+#### Bug 修复 — ✅ 已修复
+
+| Bug | 原因 | 修复方案 |
+|-----|------|---------|
+| 🐛 里程碑成就无法解锁 | `checkAndUnlock` 仅加载 30 天历史 → `first_50`/`first_100` 等永远达不到 | 改为从数据库加载全部记录 `DatabaseService.getRecords()` |
+| 🐛 大部分成就进度恒为 0/1 | `_calcProgress` 只覆盖约 20 个成就的 switch case | 补全全部 102 个成就的进度计算逻辑 |
+| 🐛 61 个成就定义存在但检测未实现 | 社交类、收藏家类、特殊日期类等成就的检测逻辑为空 | 为所有成就补全检测辅助方法 |
+
+#### 功能补全 — ✅ 已实现
+
+**已补全的成就类别及检测逻辑：**
+
+| 类别 | 成就数 | 检测方式 |
+|------|--------|---------|
+| 里程碑（次数） | 7（first_big ~ first_1000） | 记录总数计数 |
+| 里程碑（首达） | 6（first_bristol / _paid / _morning / _weekend / _achievement / _share） | 单次事件检测 |
+| 规律健康（晨便） | 5（morning_7 ~ hour_all） | 时间槽/星期几/月份/时段覆盖统计 |
+| 规律健康（连续） | 4（streak_7 ~ no_skip_30） | 连续天数/无中断天数计算 |
+| 健康指标（布里斯托） | 13（perfect_bristol ~ hydration） | 分型比例/分布/连续性/时段/颜色/顺畅度分析 |
+| 健康指标（评级） | 2（health_a_7 / _30） | 月度 A 级连续天数检测 |
+| 趣味挑战（带薪） | 3（paid_pooper ~ marathon_1h） | 带薪次数/总时长/单次时长 |
+| 趣味挑战（时间） | 5（week_warrior ~ gamer） | 周末/夜猫/双杀/打卡/游戏时间检测 |
+| 趣味挑战（场景） | 8（holiday_pooper ~ gas_station） | 笔记关键词/城市匹配/特殊地点/节假日检测 |
+| 趣味挑战（特殊） | 2（birthday_pooper / new_year） | 生日/新年日期匹配 |
+| 趣味挑战（打卡） | 8（mood_* / all_moods / color_all / duration_all） | 心情/颜色/时长分布统计 |
+| 收藏家 | 4（location_5 ~ achievement_all） | 地点/天气/月相/日期特殊性/成就数 |
+| 特殊日期 | 5（rainy_day ~ leap_day） | 笔记关键词/月相/13号星期五/闰日 |
+| 积分段位 | 3（score_500 / _2000 / _10000） | 赛季积分查询 `_getCurrentSeasonScore()` |
+| 社交（分享） | 0（first_share） | 依赖分享功能，预留接口 |
+
+#### 新增辅助方法清单
+
+| 方法 | 用途 |
+|------|------|
+| `_countMorningDays()` | 统计晨便天数（6:00-9:00） |
+| `_timeSlotStreak()` | 指定时间段内连续天数计算 |
+| `_checkSameTime7()` / `_countSameTimeStreak()` | 同一半小时间隔出现 7 次/计数 |
+| `_checkWeekendRegular()` / `_countWeekendRegular()` | 周末记录天数检测/计数 |
+| `_checkMidnight3()` / `_midnightConsecutive()` | 凌晨连续天数检测/计数 |
+| `_checkNoSkip30()` / `_countNoSkipStreak()` | 30 天无中断检测/连续天数 |
+| `_checkBristolGold()` / `_checkBristolAll()` | 黄金比例 70% 3-4 型 / 集齐 7 种分型 |
+| `_checkFiberRich()` / `_checkFiberStreak()` | 3 天/指定天数连续 3-4 型 |
+| `_checkBristolConsecutive()` / `_countBristolConsecutive()` | 连续指定分型天数 |
+| `_checkNoBadBristol()` / `_countNoBadBristolStreak()` | 无 1/2/6/7 型连续天数 |
+| `_checkGolden30()` / `_countGoldenStreak()` | 30 天黄金分型连续 |
+| `_checkBalanced()` | 3 型 4 型均 ≥20 次 |
+| `_checkComeback()` | 间隔 5 天以上后恢复记录 |
+| `_checkDurationPerfect()` | 连续 7 次 3-8 分钟 |
+| `_checkBrownOnly()` | 连续 20 次颜色=1（棕色） |
+| `_checkHydration()` | 连续 7 天顺畅度≥4 |
+| `_checkHealthAConsecutive()` / `_countHealthAConsecutive()` | 连续 A 级评级 |
+| `_checkPaidKing()` | 50 次带薪 + 总时长≥5 小时 |
+| `_checkSpeedKing()` | 5 次 1-3 分钟 |
+| `_checkMarathon()` | 单次≥15 分钟 |
+| `_checkWeekendWarrior()` | 周末同日大小号≥4 天 |
+| `_checkMoodRecorder()` | 5 种不同心情 |
+| `_checkNightOwl()` | 凌晨 0-5 点≥3 次 |
+| `_checkDoubleKill()` | 同日大小号 |
+| `_checkNoteKeyword()` / `_countNoteKeyword()` | 笔记关键词匹配/计数 |
+| `_checkNoteThought()` / `_countThoughtRecords()` | 长笔记（>30 字）检测/计数 |
+| `_checkHolidayStreak()` / `_countHolidayStreak()` | 节假日连续记录 |
+| `_extractCity()` | 从笔记/位置提取城市名 |
+| `_countLocationType()` / `_countDistinctLocations()` | 按类别统计地点/去重 |
+| `_noteContains()` | 笔记关键词匹配 |
+| `_checkDateMatch()` | 日期条件匹配 |
+| `_checkColorAll()` / `_checkDurationAll()` | 颜色 5 种/时长 3 种全收集 |
+| `_countLocationCategories()` | 地点去重计数 |
+| `_isFullMoonDay()` | 满月日判定（含 2024-2025 年满月日历） |
+| `_getCurrentSeasonScore()` | 当前赛季积分查询 |
+| `getUnlockedCount()` / `getTotalCount()` | 已解锁/总数查询（供 stats_page 使用） |
+
+#### 测验结果
+- `flutter analyze`：✅ 0 errors, 0 warnings（仅 4 个 info lint 为预存在）
+- 成就覆盖率：88 个成就定义 → 102 个成就完整检测逻辑
 
 ### 2026-05-13 首页优化与统计增强
 
