@@ -21,6 +21,8 @@ class _ProfilePageState extends State<ProfilePage> {
   JobType _selectedJobType = JobType.other;
   String? _avatarBase64;
   bool _isLoading = true;
+  int _workStartHour = 9;
+  int _workEndHour = 18;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -42,6 +44,8 @@ class _ProfilePageState extends State<ProfilePage> {
         _waistController.text = profile.waistCm?.toString() ?? '';
         _selectedJobType = profile.jobType ?? JobType.other;
         _avatarBase64 = profile.avatarBase64;
+        _workStartHour = profile.workStartHour ?? profile.defaultWorkStartHour;
+        _workEndHour = profile.workEndHour ?? profile.defaultWorkEndHour;
         _isLoading = false;
       });
     }
@@ -75,7 +79,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: Color(0xFF795548)),
+              leading: const Icon(Icons.photo_library_outlined,
+                  color: Color(0xFF795548)),
               title: const Text('从相册选择'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -83,7 +88,8 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF795548)),
+              leading: const Icon(Icons.camera_alt_outlined,
+                  color: Color(0xFF795548)),
               title: const Text('拍照'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -196,7 +202,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           color: Color(0xFF795548),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                        child: const Icon(Icons.camera_alt,
+                            size: 20, color: Colors.white),
                       ),
                     ),
                   ],
@@ -220,11 +227,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 labelText: '性别',
                 border: OutlineInputBorder(),
               ),
-              items: Gender.values.map((g) => DropdownMenuItem(
-                value: g,
-                child: Text(genderLabels[g.index]),
-              )).toList(),
-              onChanged: (v) => setState(() => _selectedGender = v ?? Gender.unknown),
+              items: Gender.values
+                  .map((g) => DropdownMenuItem(
+                        value: g,
+                        child: Text(genderLabels[g.index]),
+                      ))
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _selectedGender = v ?? Gender.unknown),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
@@ -236,7 +246,10 @@ class _ProfilePageState extends State<ProfilePage> {
               items: List.generate(80, (i) => DateTime.now().year - 18 - i)
                   .map((y) => DropdownMenuItem(value: y, child: Text('$y年')))
                   .toList(),
-              onChanged: (v) => setState(() => _selectedBirthYear = v),
+              onChanged: (v) => setState(() {
+                _selectedBirthYear = v;
+                _applyAgeDefault();
+              }),
             ),
             const SizedBox(height: 16),
             Row(
@@ -280,12 +293,17 @@ class _ProfilePageState extends State<ProfilePage> {
                 labelText: '职业类型',
                 border: OutlineInputBorder(),
               ),
-              items: JobType.values.map((j) => DropdownMenuItem(
-                value: j,
-                child: Text(jobLabels[j.index]),
-              )).toList(),
-              onChanged: (v) => setState(() => _selectedJobType = v ?? JobType.other),
+              items: JobType.values
+                  .map((j) => DropdownMenuItem(
+                        value: j,
+                        child: Text(jobLabels[j.index]),
+                      ))
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _selectedJobType = v ?? JobType.other),
             ),
+            const SizedBox(height: 24),
+            _buildWorkTimeSection(),
             const SizedBox(height: 24),
             const Card(
               color: Color(0xFFFFF8E1),
@@ -298,7 +316,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     Expanded(
                       child: Text(
                         '三围数据仅存储在本地，不会上传到服务器',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF795548)),
+                        style:
+                            TextStyle(fontSize: 12, color: Color(0xFF795548)),
                       ),
                     ),
                   ],
@@ -314,10 +333,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF795548),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                   elevation: 2,
                 ),
-                child: const Text('保存档案', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                child: const Text('保存档案',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               ),
             ),
             const SizedBox(height: 40),
@@ -327,9 +349,181 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildWorkTimeSection() {
+    final String startLabel = '${_workStartHour.toString().padLeft(2, '0')}:00';
+    final String endLabel = '${_workEndHour.toString().padLeft(2, '0')}:00';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.work_outline, size: 18, color: Color(0xFF795548)),
+            const SizedBox(width: 8),
+            const Text(
+              '工作时间段',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            Text(
+              '默认基于年龄',
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '在时间段内的大号记录将自动计为带薪',
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTimeCard(
+                icon: Icons.login,
+                label: '上班时间',
+                time: startLabel,
+                onTap: () => _showTimePicker(isStart: true),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child:
+                  Icon(Icons.arrow_forward, color: Color(0xFF795548), size: 20),
+            ),
+            Expanded(
+              child: _buildTimeCard(
+                icon: Icons.logout,
+                label: '下班时间',
+                time: endLabel,
+                onTap: () => _showTimePicker(isStart: false),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '周一至周五有效，22岁以下默认08-18点，23岁以上默认09-18点',
+          style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeCard({
+    required IconData icon,
+    required String label,
+    required String time,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          border:
+              Border.all(color: const Color(0xFFD4A574).withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFFFFF8E1),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: const Color(0xFF795548)),
+            const SizedBox(height: 4),
+            Text(label,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF999999))),
+            const SizedBox(height: 4),
+            Text(time,
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF795548))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTimePicker({required bool isStart}) async {
+    final int currentHour = isStart ? _workStartHour : _workEndHour;
+    final int? result = await showDialog<int>(
+      context: context,
+      builder: (ctx) {
+        int selected = currentHour;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(isStart ? '选择上班时间' : '选择下班时间'),
+              content: SizedBox(
+                height: 200,
+                child: ListWheelScrollView.useDelegate(
+                  itemExtent: 48,
+                  diameterRatio: 2.0,
+                  controller:
+                      FixedExtentScrollController(initialItem: selected),
+                  onSelectedItemChanged: (i) {
+                    setDialogState(() => selected = i);
+                  },
+                  childDelegate: ListWheelChildBuilderDelegate(
+                    builder: (ctx, i) => Center(
+                      child: Text(
+                        '${i.toString().padLeft(2, '0')}:00',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: i == selected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: i == selected
+                              ? const Color(0xFF795548)
+                              : Colors.grey,
+                        ),
+                      ),
+                    ),
+                    childCount: 24,
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('取消'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, selected),
+                  child: const Text('确定'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        if (isStart) {
+          _workStartHour = result;
+        } else {
+          _workEndHour = result;
+        }
+      });
+    }
+  }
+
+  void _applyAgeDefault() {
+    final tempProfile = ProfileModel(birthYear: _selectedBirthYear);
+    setState(() {
+      _workStartHour = tempProfile.defaultWorkStartHour;
+      _workEndHour = tempProfile.defaultWorkEndHour;
+    });
+  }
+
   Future<void> _save() async {
     final profile = ProfileModel(
-      nickname: _nicknameController.text.isEmpty ? null : _nicknameController.text,
+      nickname:
+          _nicknameController.text.isEmpty ? null : _nicknameController.text,
       avatarBase64: _avatarBase64,
       gender: _selectedGender,
       birthYear: _selectedBirthYear,
@@ -337,6 +531,8 @@ class _ProfilePageState extends State<ProfilePage> {
       weightKg: double.tryParse(_weightController.text),
       waistCm: double.tryParse(_waistController.text),
       jobType: _selectedJobType,
+      workStartHour: _workStartHour,
+      workEndHour: _workEndHour,
     );
 
     await DatabaseService.saveProfile(profile);

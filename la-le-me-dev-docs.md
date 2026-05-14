@@ -1,7 +1,7 @@
 # 「拉了么」全栈开发文档 & 功能设计说明书
 
-**版本**：v1.0.5（已构建 APK）  
-**日期**：2026-05-13  
+**版本**：v1.0.7（已构建 APK）  
+**日期**：2026-05-14  
 **定位**：隐私优先的生理健康记录与轻社交排名应用  
 **文档状态**：与代码同步，可直接用于开发实施
 
@@ -230,9 +230,9 @@ class QuickDetailSheet extends StatelessWidget {
       labels: ["很费劲", "略费劲", "正常", "通畅", "一泻千里"],
     ),
     FormField(
-      label: "是否带薪",
-      type: FieldType.switch,
-      defaultValue: isWorkHours(), // 自动判断
+      label: "工作时间段",
+      type: FieldType.info,
+      description: "根据个人档案年龄自动判定，22岁以下08-18点，23岁以上09-18点。时间范围内的大号自动计为带薪，无需手动勾选。",
     ),
   ];
 }
@@ -1126,6 +1126,82 @@ class AnomalyDetector {
 }
 ```
 
+### 4.7 超时提醒弹窗机制（v1.0.7 新增）
+
+在应用启动后和每次记录保存后，自动检测用户小号/大号的最近记录时间，超出阈值时弹出门内提醒对话框。
+
+```dart
+class ReminderCheckResult {
+  final bool showSmallReminder;
+  final bool showBigReminder;
+  final int hoursSinceSmall;
+  final int daysSinceBig;
+  final DateTime? lastSmallTime;
+  final DateTime? lastBigTime;
+
+  bool get hasAnyReminder => showSmallReminder || showBigReminder;
+}
+
+class ReminderService {
+  /// 查询最近一次指定类型的记录时间
+  static Future<DateTime?> _getLastRecordTime(RecordType type) async {
+    final records = await DatabaseService.getRecords(limit: 1, type: type);
+    if (records.isEmpty) return null;
+    return DateTime.fromMillisecondsSinceEpoch(records.first.timestamp);
+  }
+
+  /// 检查是否需要弹出提醒
+  static Future<ReminderCheckResult> checkReminders() async {
+    final settings = await AppSettings.load();
+    final lastSmall = await _getLastRecordTime(RecordType.small);
+    final lastBig = await _getLastRecordTime(RecordType.big);
+    final now = DateTime.now();
+
+    // 小号检测：距上次小号超过配置的小时数
+    bool showSmall = settings.smallReminderEnabled &&
+        lastSmall != null &&
+        now.difference(lastSmall).inHours >= settings.smallReminderHours;
+
+    // 大号检测：距上次大号超过配置的天数
+    bool showBig = settings.bigReminderEnabled &&
+        lastBig != null &&
+        now.difference(lastBig).inDays >= settings.bigReminderDays;
+
+    return ReminderCheckResult(...);
+  }
+}
+```
+
+**触发时机：**
+| 时机 | 说明 |
+|------|------|
+| 应用启动 | `HomePage._initServices()` → `_checkAndShowReminders()` |
+| 快速记录后 | `_quickRecord()` 保存完成后调用 |
+| 详细记录后 | `_navigateToDetail()` → `_saveRecordFromDetail()` → 刷新完成后调用 |
+
+**弹窗 UI（ReminderDialog）：**
+
+```dart
+class ReminderDialog {
+  static Future<void> show(BuildContext context, ReminderCheckResult result) {
+    // AlertDialog 包含:
+    // - ⏰ 标题图标 + '健康提醒' 标题
+    // - 💧 小号提醒卡片（蓝色调，显示已过 X 小时）
+    // - 💩 大号提醒卡片（棕色调，显示已过 X 天）
+    // - [知道了] 按钮 → 关闭弹窗
+    // - [去记录] 按钮 → 关闭弹窗 + 跳转记录详情页
+  }
+}
+```
+
+**设置页配置：**
+
+设置页新增两个 SwitchListTile（小号提醒/大号提醒），每个下方可点击配置阈值：
+- 小号阈值选项：2 / 3 / 4 / 5 / 6 小时（默认 4 小时）
+- 大号阈值选项：1 / 2 / 3 / 4 / 5 天（默认 2 天）
+
+**实现文件：** `reminder_service.dart` + `reminder_dialog.dart` + `settings_page.dart` + `home_page.dart`
+
 ---
 
 ## 五、排名模块
@@ -1619,6 +1695,8 @@ class ProfileModel {
   double? waistCm;              // 腰围cm（本地+AI分析参考）
   double? hipCm;                // 臀围cm（纯本地）
   JobType? jobType;             // 职业类型
+  int? workStartHour;         // 上班时间（0-23）v1.0.5+
+  int? workEndHour;           // 下班时间（0-23）v1.0.5+
 
   // 计算属性
   double? get bmi => weightKg != null && heightCm != null 
@@ -1649,6 +1727,19 @@ class ProfileModel {
     if (age <= 55) return "46-55";
     return "55+";
   }
+
+  int? get age {
+    if (birthYear == null) return null;
+    return DateTime.now().year - birthYear!;
+  }
+
+  /// 22岁以下默认8点上班，23岁以上9点上班
+  int get defaultWorkStartHour {
+    if (age == null) return 9;
+    return age! <= 22 ? 8 : 9;
+  }
+
+  int get defaultWorkEndHour => 18;
 }
 
 enum Gender { unknown, male, female, other }
@@ -1963,6 +2054,10 @@ class AppSettings {
   bool sedentaryReminderEnabled;
   int sedentaryReminderMinutes;  // 默认 120
   bool irregularReminderEnabled; // 规律异常提醒
+  bool smallReminderEnabled;     // 小号超时提醒开关，默认 true
+  int smallReminderHours;        // 小号超时阈值(小时)，默认 4
+  bool bigReminderEnabled;       // 大号超时提醒开关，默认 true
+  int bigReminderDays;           // 大号超时阈值(天)，默认 2
 
   // 隐私
   bool appLockEnabled;
@@ -3382,6 +3477,36 @@ cp build/app/outputs/flutter-apk/app-release.apk "${DIST_DIR}/la-le-me-app-relea
 
 ## 十四、开发进度记录
 
+### 2026-05-14 超时提醒弹窗功能
+
+#### 新增功能 — ✅ 已实现
+
+| 功能 | 说明 | 实现文件 |
+|------|------|---------|
+| ⏰ 小号超时提醒 | 检测距上次小号超过配置阈值(默认4小时)时弹窗提醒喝水 | `reminder_service.dart` + `reminder_dialog.dart` |
+| 💩 大号超时提醒 | 检测距上次大号超过配置天数(默认2天)时弹窗提醒膳食纤维 | `reminder_service.dart` + `reminder_dialog.dart` |
+| ⚙️ 提醒阈值配置 | 设置页新增小号/大号提醒开关及阈值选择器（SimpleDialog） | `settings_page.dart` |
+| 🔗 应用集成 | 启动时、快速记录后、详细记录后三处触发检查 | `home_page.dart` |
+
+**实现细节：**
+- `ReminderService.checkReminders()` 静态方法：读取 `AppSettings` 配置 → 查询最后一次小号/大号记录时间 → 与当前时间比较 → 返回 `ReminderCheckResult`
+- `ReminderDialog.show()` 静态方法：构建 `AlertDialog` 弹窗，包含彩色信息卡片（💧蓝色/💩棕色），提供「知道了」关闭和「去记录」跳转两个操作
+- `AppSettings` 新增 4 个字段：`smallReminderEnabled`（默认true）、`smallReminderHours`（默认4）、`bigReminderEnabled`（默认true）、`bigReminderDays`（默认2）
+- 阈值配置通过 `SimpleDialog` + checkmark 选择，小号支持 2/3/4/5/6 小时，大号支持 1/2/3/4/5 天
+- 所有持久化通过 `SharedPreferences` 实现，与现有 settings 架构一致
+- 提醒在每次记录保存后触发，记录更新（小号/大号）会使对应的计时器重置
+
+#### 新增文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `lib/services/reminder_service.dart` | 超时提醒检测服务 |
+| `lib/widgets/reminder_dialog.dart` | 超时提醒弹窗组件 |
+
+#### 测验结果
+- `flutter analyze`：✅ 0 issues
+- APK 构建：✅ Dart 编译通过（macOS 环境无 Android SDK，完整 APK 待 Android 环境构建验证）
+
 ### 2026-05-13 首页优化与统计增强
 
 #### 首页功能优化 — ✅ 已实现
@@ -3408,6 +3533,22 @@ cp build/app/outputs/flutter-apk/app-release.apk "${DIST_DIR}/la-le-me-app-relea
 - 当天有记录（count > 0）：显示 💩（15sp）+ 日期数字（9sp, 棕色粗体）
 - 当天无记录（count == 0）：灰色圆形背景 + 日期数字（11sp, 灰色）
 - 移除原有的 `getHeatColor()` 棕色热力映射逻辑
+
+#### 工作时间段智能判定 — ✅ 已实现
+
+| 功能 | 说明 | 实现文件 |
+|------|------|---------|
+| 🕘 工作时间段配置 | 个人档案页新增上班/下班时间选择器，默认基于年龄（22岁以下08-18点，23岁以上09-18点） | `profile_page.dart` + `profile_model.dart` |
+| 🤖 自动带薪判定 | 移除手动「工作时间」「💰 带薪」开关，根据档案工作时间段自动判定（周一至周五有效） | `record_detail_page.dart` + `home_page.dart` |
+| 📦 数据库迁移 | `user_profile` 表新增 `work_start_hour`/`work_end_hour` 列，v3 迁移平滑升级 | `database_service.dart` |
+
+**实现细节：**
+- `ProfileModel` 新增 `workStartHour`/`workEndHour` 字段 + `age` getter + `defaultWorkStartHour`/`defaultWorkEndHour` 智能默认值
+- 出生年份变更时自动应用年龄段默认工作时间（`_applyAgeDefault()`）
+- `AppUtils` 新增 `isWorkHoursForTime(dt, startHour, endHour)` 方法，支持传入自定义工作时间段
+- 详细记录页移除手动开关，改为显示「当前为工作时间 / 当前非工作时间」信息卡片
+- 快速记录和详细记录均根据档案工作时间段自动设置 `isPaidPoop = isWorkTime`
+- 背包曲线兼容：`ScoreCalculator._calculatePaid()` 读取自动设置的 P 因子，无需修改计算逻辑
 
 ### 2026-05-12 安全设置与时间轴完成
 
@@ -3529,6 +3670,7 @@ cp build/app/outputs/flutter-apk/app-release.apk "${DIST_DIR}/la-le-me-app-relea
 | `lib/services/backup_encryption.dart` | AES-256-GCM 加密/解密 |
 | `lib/services/notification_service.dart` | 8 种本地通知类型 |
 | `lib/services/settings_service.dart` | 应用偏好设置持久化 |
+| `lib/services/reminder_service.dart` | 超时提醒检测服务（v1.0.7 新增） |
 | `lib/services/theme_service.dart` | Light/Dark/OLED 主题切换 |
 | `lib/screens/main_shell.dart` | 底部 4 Tab 主壳 |
 | `lib/screens/home_page.dart` | 首页（问候语、核心卡片、5日趋势三线图、快速记录） |
@@ -3537,12 +3679,13 @@ cp build/app/outputs/flutter-apk/app-release.apk "${DIST_DIR}/la-le-me-app-relea
 | `lib/screens/ranking_page.dart` | 排行榜（全球/同城/好友三栏 Tab） |
 | `lib/screens/record_detail_page.dart` | 详细记录页面 |
 | `lib/screens/settings_page.dart` | 设置主页面 |
-| `lib/screens/profile_page.dart` | 个人档案页面 |
+| `lib/screens/profile_page.dart` | 个人档案页面（昵称/头像/出生年份/身体数据/工作时间段） |
 | `lib/screens/ai_config_page.dart` | AI 配置页面 |
 | `lib/screens/security_page.dart` | 安全设置页面 |
 | `lib/screens/data_management_page.dart` | 数据管理页面 |
 | `lib/screens/backup_page.dart` | 云端备份页面 |
 | `lib/screens/server_config_page.dart` | 服务器配置页面 |
+| `lib/widgets/reminder_dialog.dart` | 超时提醒弹窗组件（v1.0.7 新增） |
 | `lib/utils/app_utils.dart` | 通用工具函数 |
 | `lib/utils/theme.dart` | 主题颜色、样式、常量定义 |
 
@@ -3561,7 +3704,7 @@ cp build/app/outputs/flutter-apk/app-release.apk "${DIST_DIR}/la-le-me-app-relea
 | AI 数据脱敏聚合 | ✅ ai_service.dart | - | 完整实现 |
 | 年度关键词生成 | ✅ regularity_calculator.dart | - | 完整实现 |
 | 状态管理 (Riverpod) | ✅ providers/ | - | 完整实现 |
-| 通知/提醒系统 | ✅ notification_service.dart | - | 完整实现 |
+| 通知/提醒系统 | ✅ notification_service.dart + reminder_service.dart | - | 完整实现（含 v1.0.7 超时弹窗） |
 | 备份加密/恢复 | ✅ backup_encryption.dart | ✅ backup_service.go | 完整实现 |
 | 主题切换 | ✅ theme_service.dart | - | 完整实现 |
 | 成就系统 | ✅ achievement_service.dart | ✅ score_service.go | 完整实现 |

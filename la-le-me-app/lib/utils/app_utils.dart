@@ -48,33 +48,56 @@ class AppUtils {
 
   static String getBristolLabel(int? type) {
     switch (type) {
-      case 1: return '1型-硬球状';
-      case 2: return '2型-腊肠块';
-      case 3: return '3型-裂纹状';
-      case 4: return '4型-光滑软便';
-      case 5: return '5型-软团块';
-      case 6: return '6型-糊状';
-      case 7: return '7型-水样';
-      default: return '未选择';
+      case 1:
+        return '1型-硬球状';
+      case 2:
+        return '2型-腊肠块';
+      case 3:
+        return '3型-裂纹状';
+      case 4:
+        return '4型-光滑软便';
+      case 5:
+        return '5型-软团块';
+      case 6:
+        return '6型-糊状';
+      case 7:
+        return '7型-水样';
+      default:
+        return '未选择';
     }
   }
 
   static String getBristolEmoji(int? type) {
     switch (type) {
-      case 1: return '🔴';
-      case 2: return '🟠';
-      case 3: return '🟡';
-      case 4: return '🟢';
-      case 5: return '🔵';
-      case 6: return '🟣';
-      case 7: return '⚫';
-      default: return '⚪';
+      case 1:
+        return '🔴';
+      case 2:
+        return '🟠';
+      case 3:
+        return '🟡';
+      case 4:
+        return '🟢';
+      case 5:
+        return '🔵';
+      case 6:
+        return '🟣';
+      case 7:
+        return '⚫';
+      default:
+        return '⚪';
     }
   }
 
-  static bool isWorkHours() {
+  static bool isWorkHours({int? startHour, int? endHour, int? weekday}) {
     DateTime now = DateTime.now();
-    return now.weekday <= 5 && now.hour >= 9 && now.hour < 18;
+    int wd = weekday ?? now.weekday;
+    int start = startHour ?? 9;
+    int end = endHour ?? 18;
+    return wd <= 5 && now.hour >= start && now.hour < end;
+  }
+
+  static bool isWorkHoursForTime(DateTime dt, int startHour, int endHour) {
+    return dt.weekday <= 5 && dt.hour >= startHour && dt.hour < endHour;
   }
 
   static String getRelativeDay(DateTime dt) {

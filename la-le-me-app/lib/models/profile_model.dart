@@ -15,6 +15,8 @@ class ProfileModel {
   double? waistCm;
   double? hipCm;
   JobType? jobType;
+  int? workStartHour;
+  int? workEndHour;
 
   ProfileModel({
     this.nickname,
@@ -27,6 +29,8 @@ class ProfileModel {
     this.waistCm,
     this.hipCm,
     this.jobType,
+    this.workStartHour,
+    this.workEndHour,
   });
 
   double? get bmi {
@@ -62,6 +66,18 @@ class ProfileModel {
     return "55+";
   }
 
+  int? get age {
+    if (birthYear == null) return null;
+    return DateTime.now().year - birthYear!;
+  }
+
+  int get defaultWorkStartHour {
+    if (age == null) return 9;
+    return age! <= 22 ? 8 : 9;
+  }
+
+  int get defaultWorkEndHour => 18;
+
   Map<String, dynamic> toMap() {
     return {
       'nickname': nickname,
@@ -74,6 +90,8 @@ class ProfileModel {
       'waist_cm': waistCm,
       'hip_cm': hipCm,
       'job_type': jobType?.index ?? 0,
+      'work_start_hour': workStartHour,
+      'work_end_hour': workEndHour,
     };
   }
 
@@ -93,6 +111,8 @@ class ProfileModel {
       jobType: map['job_type'] != null
           ? JobType.values[map['job_type'] as int]
           : JobType.other,
+      workStartHour: map['work_start_hour'] as int?,
+      workEndHour: map['work_end_hour'] as int?,
     );
   }
 }

@@ -8,7 +8,7 @@ import '../models/season.dart';
 class DatabaseService {
   static Database? _database;
   static const String _dbName = 'la_le_me.db';
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
@@ -62,7 +62,9 @@ class DatabaseService {
         chest_cm REAL,
         waist_cm REAL,
         hip_cm REAL,
-        job_type INTEGER DEFAULT 0
+        job_type INTEGER DEFAULT 0,
+        work_start_hour INTEGER,
+        work_end_hour INTEGER
       )
     ''');
 
@@ -116,7 +118,8 @@ class DatabaseService {
     );
   }
 
-  static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  static Future<void> _onUpgrade(
+      Database db, int oldVersion, int newVersion) async {
     for (int v = oldVersion + 1; v <= newVersion; v++) {
       switch (v) {
         case 2:
@@ -129,6 +132,14 @@ class DatabaseService {
           ''');
           await db.execute(
             'CREATE INDEX idx_achievements_synced ON achievements(synced)',
+          );
+          break;
+        case 3:
+          await db.execute(
+            'ALTER TABLE user_profile ADD COLUMN work_start_hour INTEGER',
+          );
+          await db.execute(
+            'ALTER TABLE user_profile ADD COLUMN work_end_hour INTEGER',
           );
           break;
       }
@@ -237,7 +248,8 @@ class DatabaseService {
 
   static Future<int> getTotalRecordCount() async {
     final db = await database;
-    final result = await db.rawQuery('SELECT COUNT(*) as count FROM toilet_records');
+    final result =
+        await db.rawQuery('SELECT COUNT(*) as count FROM toilet_records');
     return result.first['count'] as int;
   }
 
@@ -254,7 +266,8 @@ class DatabaseService {
 
   static Future<void> saveProfile(ProfileModel profile) async {
     final db = await database;
-    await db.update('user_profile', profile.toMap(), where: 'id = ?', whereArgs: [1]);
+    await db.update('user_profile', profile.toMap(),
+        where: 'id = ?', whereArgs: [1]);
   }
 
   static Future<void> saveSeasonHistory(SeasonHistory history) async {

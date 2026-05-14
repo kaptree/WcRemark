@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/database_service.dart';
+import '../utils/app_utils.dart';
 
 class RecordDetailPage extends StatefulWidget {
   const RecordDetailPage({super.key});
@@ -12,10 +14,12 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
   int? _selectedDuration;
   int? _selectedBristolType;
   int _smoothness = 3;
-  bool _isWorkHours = false;
-  bool _isPaidPoop = false;
   final _noteController = TextEditingController();
   String _selectedMood = '😊';
+  bool _isWorkTime = false;
+  int _workStartHour = 9;
+  int _workEndHour = 18;
+  bool _isLoading = true;
 
   final List<String> _moodOptions = ['😊', '😌', '😤', '😩', '🤢', '😄', '😎'];
 
@@ -30,14 +34,23 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
   @override
   void initState() {
     super.initState();
-    _isWorkHours = _checkWorkHours();
-    _isPaidPoop = _isWorkHours;
+    _loadWorkSettings();
   }
 
-  bool _checkWorkHours() {
-    int hour = DateTime.now().hour;
-    int weekday = DateTime.now().weekday;
-    return weekday <= 5 && hour >= 9 && hour < 18;
+  Future<void> _loadWorkSettings() async {
+    final profile = await DatabaseService.getProfile();
+    if (mounted) {
+      final start = profile.workStartHour ?? profile.defaultWorkStartHour;
+      final end = profile.workEndHour ?? profile.defaultWorkEndHour;
+      final now = DateTime.now();
+      final isWork = AppUtils.isWorkHoursForTime(now, start, end);
+      setState(() {
+        _workStartHour = start;
+        _workEndHour = end;
+        _isWorkTime = isWork;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -48,7 +61,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text('保存', style: TextStyle(fontSize: 16, color: Colors.black)),
+            child: const Text('保存',
+                style: TextStyle(fontSize: 16, color: Colors.black)),
           ),
         ],
       ),
@@ -67,7 +81,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
             ],
             _buildSmoothnessSlider(),
             const SizedBox(height: 24),
-            _buildPaidPoopSwitch(),
+            _buildWorkTimeInfo(),
             const SizedBox(height: 24),
             _buildMoodSelector(),
             const SizedBox(height: 24),
@@ -81,10 +95,13 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF795548),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                   elevation: 2,
                 ),
-                child: const Text('提交记录', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                child: const Text('提交记录',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               ),
             ),
             const SizedBox(height: 40),
@@ -98,13 +115,15 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('类型', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('类型',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: ChoiceChip(
-                label: const Text('💧 小号', style: TextStyle(color: Colors.black)),
+                label:
+                    const Text('💧 小号', style: TextStyle(color: Colors.black)),
                 selected: _selectedType == 0,
                 onSelected: (_) => setState(() => _selectedType = 0),
                 selectedColor: Colors.blue.shade100,
@@ -114,7 +133,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
             const SizedBox(width: 12),
             Expanded(
               child: ChoiceChip(
-                label: const Text('💩 大号', style: TextStyle(color: Colors.black)),
+                label:
+                    const Text('💩 大号', style: TextStyle(color: Colors.black)),
                 selected: _selectedType == 1,
                 onSelected: (_) => setState(() => _selectedType = 1),
                 selectedColor: Colors.brown.shade100,
@@ -131,7 +151,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('时长', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('时长',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -139,7 +160,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
           children: _durationOptions.map((opt) {
             int index = _durationOptions.indexOf(opt);
             return ChoiceChip(
-              label: Text(opt['label'] as String, style: const TextStyle(color: Colors.black)),
+              label: Text(opt['label'] as String,
+                  style: const TextStyle(color: Colors.black)),
               selected: _selectedDuration == index,
               onSelected: (_) => setState(() => _selectedDuration = index),
               selectedColor: const Color(0xFFD4A574).withValues(alpha: 0.3),
@@ -165,14 +187,16 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('布里斯托分型', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('布里斯托分型',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: bristolLabels.entries.map((e) {
             return ChoiceChip(
-              label: Text(e.value, style: const TextStyle(fontSize: 12, color: Colors.black)),
+              label: Text(e.value,
+                  style: const TextStyle(fontSize: 12, color: Colors.black)),
               selected: _selectedBristolType == e.key,
               onSelected: (_) => setState(() => _selectedBristolType = e.key),
               selectedColor: const Color(0xFFD4A574).withValues(alpha: 0.3),
@@ -189,11 +213,16 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('顺畅度', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('顺畅度',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: labels.map((l) => Text(l, style: const TextStyle(fontSize: 10, color: Color(0xFF999999)))).toList(),
+          children: labels
+              .map((l) => Text(l,
+                  style:
+                      const TextStyle(fontSize: 10, color: Color(0xFF999999))))
+              .toList(),
         ),
         Slider(
           value: _smoothness.toDouble(),
@@ -207,32 +236,67 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     );
   }
 
-  Widget _buildPaidPoopSwitch() {
+  Widget _buildWorkTimeInfo() {
+    final startLabel = '${_workStartHour.toString().padLeft(2, '0')}:00';
+    final endLabel = '${_workEndHour.toString().padLeft(2, '0')}:00';
+    if (_isLoading) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+              child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))),
+        ),
+      );
+    }
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
           children: [
-            SwitchListTile(
-              title: const Text('工作时间'),
-              value: _isWorkHours,
-              onChanged: (v) => setState(() {
-                _isWorkHours = v;
-                if (!v) _isPaidPoop = false;
-              }),
-              activeThumbColor: const Color(0xFF795548),
-              activeTrackColor: const Color(0xFF795548).withValues(alpha: 0.5),
+            Icon(
+              _isWorkTime ? Icons.work : Icons.nightlight_round,
+              color: _isWorkTime ? const Color(0xFF4CAF50) : Colors.grey,
+              size: 20,
             ),
-            SwitchListTile(
-              title: const Text('💰 带薪'),
-              subtitle: const Text('摸鱼也是生产力'),
-              value: _isPaidPoop,
-              onChanged: _isWorkHours
-                  ? (v) => setState(() => _isPaidPoop = v)
-                  : null,
-              activeThumbColor: const Color(0xFF795548),
-              activeTrackColor: const Color(0xFF795548).withValues(alpha: 0.5),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _isWorkTime ? '当前为工作时间' : '当前非工作时间',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          _isWorkTime ? const Color(0xFF4CAF50) : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '工作时间段：周一至周五 $startLabel - $endLabel',
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF999999)),
+                  ),
+                ],
+              ),
             ),
+            if (_isWorkTime)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('💰 带薪',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF4CAF50),
+                        fontWeight: FontWeight.w600)),
+              ),
           ],
         ),
       ),
@@ -243,7 +307,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('心情', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('心情',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -277,7 +342,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('备注（选填）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('备注（选填）',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         TextField(
           controller: _noteController,
@@ -297,11 +363,13 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
   void _save() {
     final record = <String, dynamic>{
       'type': _selectedType,
-      'duration': _selectedDuration != null ? _durationOptions[_selectedDuration!]['seconds'] : null,
+      'duration': _selectedDuration != null
+          ? _durationOptions[_selectedDuration!]['seconds']
+          : null,
       'bristol_type': _selectedBristolType,
       'smoothness': _smoothness,
-      'is_work_hours': _isWorkHours,
-      'is_paid_poop': _isPaidPoop,
+      'is_work_hours': _isWorkTime,
+      'is_paid_poop': _isWorkTime,
       'mood': _selectedMood,
       'note': _noteController.text.isNotEmpty ? _noteController.text : null,
     };

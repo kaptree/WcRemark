@@ -16,8 +16,7 @@ class NotificationService {
 
   static Future<void> requestPermission() async {
     if (Platform.isAndroid) {
-    } else if (Platform.isIOS) {
-    }
+    } else if (Platform.isIOS) {}
   }
 
   static Future<void> show({
@@ -30,7 +29,8 @@ class NotificationService {
 
     final notificationId = id ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    debugPrint('[Notification#$notificationId] $title: $body (payload: $payload)');
+    debugPrint(
+        '[Notification#$notificationId] $title: $body (payload: $payload)');
   }
 
   static Future<void> scheduleDaily({
@@ -42,7 +42,8 @@ class NotificationService {
   }) async {
     if (!_initialized) await initialize();
 
-    debugPrint('[ScheduledNotification#$id] Daily $hour:$minute - $title: $body');
+    debugPrint(
+        '[ScheduledNotification#$id] Daily $hour:$minute - $title: $body');
   }
 
   static Future<void> scheduleDelayed({
@@ -54,7 +55,8 @@ class NotificationService {
     if (!_initialized) await initialize();
 
     final scheduledTime = DateTime.now().add(delay);
-    debugPrint('[DelayedNotification] At ${scheduledTime.toIso8601String()} - $title: $body');
+    debugPrint(
+        '[DelayedNotification] At ${scheduledTime.toIso8601String()} - $title: $body');
   }
 
   static Future<void> cancelAll() async {
@@ -72,6 +74,8 @@ class NotificationType {
   static const String constipationAlert = 'anomaly:constipation';
   static const String diarrheaAlert = 'anomaly:diarrhea';
   static const String bloodAlert = 'anomaly:blood';
+  static const String smallReminder = 'reminder:small';
+  static const String bigReminder = 'reminder:big';
   static const String rankUpdate = 'rank:update';
   static const String achievementUnlock = 'achievement:unlock';
   static const String seasonChange = 'season:change';
@@ -88,6 +92,10 @@ class NotificationType {
         return '⚠️ 腹泻预警';
       case bloodAlert:
         return '🚨 重要健康提醒';
+      case smallReminder:
+        return '💧 小号提醒';
+      case bigReminder:
+        return '💩 大号提醒';
       case rankUpdate:
         return '🎉 排名变化';
       case achievementUnlock:
@@ -112,6 +120,12 @@ class NotificationType {
         return '检测到持续腹泻症状，请注意补水，如超过3天请立即就医。';
       case bloodAlert:
         return '检测到异常便便颜色记录，建议尽快就医检查。';
+      case smallReminder:
+        final hours = data?['hours'] ?? 4;
+        return '已经 $hours 小时没有小号了，记得多喝水哦～';
+      case bigReminder:
+        final days = data?['days'] ?? 2;
+        return '已经 $days 天没有大号了，建议多吃膳食纤维～';
       case rankUpdate:
         final change = data?['rank_change'] ?? 0;
         return change > 0 ? '排名上升了 $change 位！' : '排名下降了 ${change.abs()} 位';

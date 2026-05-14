@@ -10,6 +10,7 @@ import '../services/anti_cheat_service.dart';
 import '../services/achievement_service.dart';
 import '../services/season_service.dart';
 import '../services/anomaly_detector.dart';
+import '../services/reminder_service.dart';
 import '../services/sound_service.dart';
 import '../services/app_content_loader.dart';
 import '../services/regularity_calculator.dart';
@@ -17,6 +18,7 @@ import '../screens/settings_page.dart';
 import '../models/achievement.dart';
 import '../providers/record_provider.dart';
 import '../utils/app_utils.dart';
+import '../widgets/reminder_dialog.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -42,6 +44,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (mounted) {
       await AnomalyDetector.checkAndAlert();
     }
+    _checkAndShowReminders();
+  }
+
+  Future<void> _checkAndShowReminders() async {
+    try {
+      final result = await ReminderService.checkReminders();
+      if (result.hasAnyReminder && mounted) {
+        ReminderDialog.show(context, result);
+      }
+    } catch (_) {}
   }
 
   String _getGreeting() {
@@ -140,6 +152,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       await _saveRecordFromDetail(result);
     }
     _refreshData();
+    _checkAndShowReminders();
   }
 
   Future<void> _saveRecordFromDetail(Map<String, dynamic> data) async {
@@ -223,15 +236,21 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _quickRecord(RecordType type) async {
+    final profile = await DatabaseService.getProfile();
+    final startHour = profile.workStartHour ?? profile.defaultWorkStartHour;
+    final endHour = profile.workEndHour ?? profile.defaultWorkEndHour;
+    final now = DateTime.now();
+    final isWork = AppUtils.isWorkHoursForTime(now, startHour, endHour);
+
     final record = ToiletRecord(
       id: const Uuid().v4(),
       type: type,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
+      timestamp: now.millisecondsSinceEpoch,
       duration: type == RecordType.small ? 30 : 180,
-      isWorkHours: AppUtils.isWorkHours(),
-      isPaidPoop: AppUtils.isWorkHours(),
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      updatedAt: DateTime.now().millisecondsSinceEpoch,
+      isWorkHours: isWork,
+      isPaidPoop: isWork,
+      createdAt: now.millisecondsSinceEpoch,
+      updatedAt: now.millisecondsSinceEpoch,
     );
 
     final history = await DatabaseService.getRecentRecords(days: 30);
@@ -283,6 +302,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       final settings = ref.read(settingsNotifierProvider);
       SoundService.playWaterDrop(settings);
       _refreshData();
+      _checkAndShowReminders();
     }
   }
 

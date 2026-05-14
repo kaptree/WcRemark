@@ -17,7 +17,8 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
   }
 }
 
-final settingsNotifierProvider = StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) {
+final settingsNotifierProvider =
+    StateNotifierProvider<AppSettingsNotifier, AppSettings>((ref) {
   final asyncSettings = ref.watch(settingsFutureProvider);
   return AppSettingsNotifier(asyncSettings.when(
     data: (s) => s,
@@ -55,7 +56,6 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showRankInfo(context),
           ),
-
           _buildSectionHeader('安全与隐私'),
           ListTile(
             leading: const Icon(Icons.fingerprint, color: Color(0xFF795548)),
@@ -65,20 +65,24 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => Navigator.pushNamed(context, '/settings/security'),
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.visibility_off, color: Color(0xFF795548)),
+            secondary:
+                const Icon(Icons.visibility_off, color: Color(0xFF795548)),
             title: const Text('隐私模式'),
             subtitle: const Text('最近任务卡片不显示内容'),
             value: settings.privacyModeEnabled,
-            onChanged: (v) => ref.read(settingsNotifierProvider.notifier).update(settings.copyWith(privacyModeEnabled: v)),
+            onChanged: (v) => ref
+                .read(settingsNotifierProvider.notifier)
+                .update(settings.copyWith(privacyModeEnabled: v)),
           ),
           SwitchListTile(
             secondary: const Icon(Icons.hide_source, color: Color(0xFF795548)),
             title: const Text('匿名排行'),
             subtitle: const Text('在排行榜显示匿名昵称'),
             value: settings.anonymousRanking,
-            onChanged: (v) => ref.read(settingsNotifierProvider.notifier).update(settings.copyWith(anonymousRanking: v)),
+            onChanged: (v) => ref
+                .read(settingsNotifierProvider.notifier)
+                .update(settings.copyWith(anonymousRanking: v)),
           ),
-
           _buildSectionHeader('AI'),
           ListTile(
             leading: const Icon(Icons.smart_toy, color: Color(0xFF795548)),
@@ -87,7 +91,6 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.pushNamed(context, '/settings/ai-config'),
           ),
-
           _buildSectionHeader('数据'),
           ListTile(
             leading: const Icon(Icons.storage, color: Color(0xFF795548)),
@@ -103,7 +106,6 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.pushNamed(context, '/settings/backup'),
           ),
-
           _buildSectionHeader('服务器'),
           ListTile(
             leading: const Icon(Icons.dns, color: Color(0xFF795548)),
@@ -112,7 +114,6 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.pushNamed(context, '/settings/server'),
           ),
-
           _buildSectionHeader('偏好'),
           ListTile(
             leading: const Icon(Icons.palette, color: Color(0xFF795548)),
@@ -128,17 +129,60 @@ class SettingsPage extends ConsumerWidget {
             value: settings.soundEffect != SoundEffect.none,
             onChanged: (v) {
               final newEffect = v ? SoundEffect.waterDrop : SoundEffect.none;
-              ref.read(settingsNotifierProvider.notifier).update(settings.copyWith(soundEffect: newEffect));
+              ref
+                  .read(settingsNotifierProvider.notifier)
+                  .update(settings.copyWith(soundEffect: newEffect));
             },
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.notifications, color: Color(0xFF795548)),
+            secondary:
+                const Icon(Icons.notifications, color: Color(0xFF795548)),
             title: const Text('晨间提醒'),
             subtitle: const Text('每日 07:30 提醒'),
             value: settings.morningReminderEnabled,
-            onChanged: (v) => ref.read(settingsNotifierProvider.notifier).update(settings.copyWith(morningReminderEnabled: v)),
+            onChanged: (v) => ref
+                .read(settingsNotifierProvider.notifier)
+                .update(settings.copyWith(morningReminderEnabled: v)),
           ),
-
+          SwitchListTile(
+            secondary: const Icon(Icons.water_drop, color: Color(0xFF42A5F5)),
+            title: const Text('小号提醒'),
+            subtitle: Text(settings.smallReminderEnabled
+                ? '超过 ${settings.smallReminderHours} 小时未小号时提醒'
+                : '关闭'),
+            value: settings.smallReminderEnabled,
+            onChanged: (v) => ref
+                .read(settingsNotifierProvider.notifier)
+                .update(settings.copyWith(smallReminderEnabled: v)),
+          ),
+          if (settings.smallReminderEnabled)
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: const Text('提醒阈值'),
+              subtitle: Text('${settings.smallReminderHours} 小时'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showSmallHoursPicker(context, ref, settings),
+            ),
+          SwitchListTile(
+            secondary:
+                const Icon(Icons.accessibility, color: Color(0xFF795548)),
+            title: const Text('大号提醒'),
+            subtitle: Text(settings.bigReminderEnabled
+                ? '超过 ${settings.bigReminderDays} 天未大号时提醒'
+                : '关闭'),
+            value: settings.bigReminderEnabled,
+            onChanged: (v) => ref
+                .read(settingsNotifierProvider.notifier)
+                .update(settings.copyWith(bigReminderEnabled: v)),
+          ),
+          if (settings.bigReminderEnabled)
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: const Text('提醒阈值'),
+              subtitle: Text('${settings.bigReminderDays} 天'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showBigDaysPicker(context, ref, settings),
+            ),
           _buildSectionHeader('关于'),
           const ListTile(
             leading: Icon(Icons.info_outline, color: Color(0xFF795548)),
@@ -152,18 +196,20 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _showPrivacyPolicy(context),
           ),
           ListTile(
-            leading: const Icon(Icons.medical_services, color: Color(0xFF795548)),
+            leading:
+                const Icon(Icons.medical_services, color: Color(0xFF795548)),
             title: const Text('医疗免责声明'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showMedicalDisclaimer(context),
           ),
-
           _buildSectionHeader('关于作者'),
           ListTile(
             leading: const CircleAvatar(
               radius: 18,
               backgroundColor: Color(0xFF795548),
-              child: Text('K', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text('K',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
             title: const Text('Kaptree'),
             subtitle: const Text('感谢使用拉了么 ❤️'),
@@ -180,14 +226,19 @@ class SettingsPage extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF999999)),
+        style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF999999)),
       ),
     );
   }
 
   Future<String> _getCurrentRankTitle() async {
     try {
-      final score = int.tryParse(await DatabaseService.getSetting('season_score') ?? '0') ?? 0;
+      final score = int.tryParse(
+              await DatabaseService.getSetting('season_score') ?? '0') ??
+          0;
       return Rank.getRankNameByScore(score);
     } catch (_) {
       return '便秘青铜';
@@ -196,18 +247,25 @@ class SettingsPage extends ConsumerWidget {
 
   String _themeLabel(ThemeMode mode) {
     switch (mode) {
-      case ThemeMode.system: return '跟随系统';
-      case ThemeMode.light: return '浅色模式';
-      case ThemeMode.dark: return '深色模式';
+      case ThemeMode.system:
+        return '跟随系统';
+      case ThemeMode.light:
+        return '浅色模式';
+      case ThemeMode.dark:
+        return '深色模式';
     }
   }
 
   String _soundLabel(SoundEffect effect) {
     switch (effect) {
-      case SoundEffect.none: return '关闭';
-      case SoundEffect.waterDrop: return '水滴声 💧';
-      case SoundEffect.flush: return '冲水声 🚿';
-      case SoundEffect.fart: return '屁声 💨';
+      case SoundEffect.none:
+        return '关闭';
+      case SoundEffect.waterDrop:
+        return '水滴声 💧';
+      case SoundEffect.flush:
+        return '冲水声 🚿';
+      case SoundEffect.fart:
+        return '屁声 💨';
     }
   }
 
@@ -240,7 +298,8 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  void _showThemePicker(BuildContext context, WidgetRef ref, AppSettings settings) {
+  void _showThemePicker(
+      BuildContext context, WidgetRef ref, AppSettings settings) {
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
@@ -248,21 +307,27 @@ class SettingsPage extends ConsumerWidget {
         children: [
           SimpleDialogOption(
             onPressed: () {
-              ref.read(settingsNotifierProvider.notifier).update(settings.copyWith(themeMode: ThemeMode.system));
+              ref
+                  .read(settingsNotifierProvider.notifier)
+                  .update(settings.copyWith(themeMode: ThemeMode.system));
               Navigator.pop(ctx);
             },
             child: const Text('跟随系统'),
           ),
           SimpleDialogOption(
             onPressed: () {
-              ref.read(settingsNotifierProvider.notifier).update(settings.copyWith(themeMode: ThemeMode.light));
+              ref
+                  .read(settingsNotifierProvider.notifier)
+                  .update(settings.copyWith(themeMode: ThemeMode.light));
               Navigator.pop(ctx);
             },
             child: const Text('浅色模式'),
           ),
           SimpleDialogOption(
             onPressed: () {
-              ref.read(settingsNotifierProvider.notifier).update(settings.copyWith(themeMode: ThemeMode.dark));
+              ref
+                  .read(settingsNotifierProvider.notifier)
+                  .update(settings.copyWith(themeMode: ThemeMode.dark));
               Navigator.pop(ctx);
             },
             child: const Text('深色模式'),
@@ -292,7 +357,8 @@ class SettingsPage extends ConsumerWidget {
               SizedBox(height: 12),
               Text('API Key 安全', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 4),
-              Text('您的AI服务商API Key使用设备级加密存储（iOS Keychain/Android Keystore），分析请求直接从您的设备发送至大模型厂商。'),
+              Text(
+                  '您的AI服务商API Key使用设备级加密存储（iOS Keychain/Android Keystore），分析请求直接从您的设备发送至大模型厂商。'),
               SizedBox(height: 12),
               Text('数据删除', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 4),
@@ -334,6 +400,66 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
+  void _showSmallHoursPicker(
+      BuildContext context, WidgetRef ref, AppSettings settings) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('小号提醒阈值'),
+        children: [2, 3, 4, 5, 6].map((hours) {
+          return SimpleDialogOption(
+            onPressed: () {
+              ref
+                  .read(settingsNotifierProvider.notifier)
+                  .update(settings.copyWith(smallReminderHours: hours));
+              Navigator.pop(ctx);
+            },
+            child: Row(
+              children: [
+                if (settings.smallReminderHours == hours)
+                  const Icon(Icons.check, size: 20, color: Color(0xFF795548))
+                else
+                  const SizedBox(width: 20),
+                const SizedBox(width: 12),
+                Text('$hours 小时'),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showBigDaysPicker(
+      BuildContext context, WidgetRef ref, AppSettings settings) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('大号提醒阈值'),
+        children: [1, 2, 3, 4, 5].map((days) {
+          return SimpleDialogOption(
+            onPressed: () {
+              ref
+                  .read(settingsNotifierProvider.notifier)
+                  .update(settings.copyWith(bigReminderDays: days));
+              Navigator.pop(ctx);
+            },
+            child: Row(
+              children: [
+                if (settings.bigReminderDays == days)
+                  const Icon(Icons.check, size: 20, color: Color(0xFF795548))
+                else
+                  const SizedBox(width: 20),
+                const SizedBox(width: 12),
+                Text('$days 天'),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   void _showAuthorInfo(BuildContext context) {
     showDialog(
       context: context,
@@ -347,12 +473,19 @@ class SettingsPage extends ConsumerWidget {
               const CircleAvatar(
                 radius: 36,
                 backgroundColor: Color(0xFF795548),
-                child: Text('K', style: TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text('K',
+                    style: TextStyle(
+                        fontSize: 28,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 12),
               const Text(
                 'Kaptree',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A1A)),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -385,7 +518,9 @@ class SettingsPage extends ConsumerWidget {
                       children: [
                         Icon(Icons.qr_code, size: 48, color: Color(0xFF999999)),
                         SizedBox(height: 8),
-                        Text('赞赏码', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                        Text('赞赏码',
+                            style: TextStyle(
+                                fontSize: 12, color: Color(0xFF999999))),
                       ],
                     ),
                   ),
@@ -425,7 +560,8 @@ class _RankRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(rank, style: const TextStyle(fontSize: 14)),
-          Text(range, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+          Text(range,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
         ],
       ),
     );
