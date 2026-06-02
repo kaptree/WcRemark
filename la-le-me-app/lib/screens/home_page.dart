@@ -215,22 +215,24 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     }
 
-    final newHistory = [...history, record];
-    final newUnlocks =
-        await AchievementService.checkAndUnlock(record, newHistory);
-    if (newUnlocks.isNotEmpty && mounted) {
-      for (final id in newUnlocks) {
-        final def = Achievement.getDefById(id);
-        if (def != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('🏆 成就解锁：${def.name}'),
-              duration: const Duration(seconds: 3),
-            ),
-          );
+    try {
+      final newHistory = [...history, record];
+      final newUnlocks =
+          await AchievementService.checkAndUnlock(record, newHistory);
+      if (newUnlocks.isNotEmpty && mounted) {
+        for (final id in newUnlocks) {
+          final def = Achievement.getDefById(id);
+          if (def != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🏆 成就解锁：${def.name}'),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
         }
       }
-    }
+    } catch (_) {}
 
     _refreshData();
   }
@@ -275,22 +277,24 @@ class _HomePageState extends ConsumerState<HomePage> {
       await SeasonService.addScore(score.round());
     }
 
-    final newHistory = [...history, record];
-    final newUnlocks =
-        await AchievementService.checkAndUnlock(record, newHistory);
-    if (newUnlocks.isNotEmpty && mounted) {
-      for (final id in newUnlocks) {
-        final def = Achievement.getDefById(id);
-        if (def != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('🏆 成就解锁：${def.name}'),
-              duration: const Duration(seconds: 3),
-            ),
-          );
+    try {
+      final newHistory = [...history, record];
+      final newUnlocks =
+          await AchievementService.checkAndUnlock(record, newHistory);
+      if (newUnlocks.isNotEmpty && mounted) {
+        for (final id in newUnlocks) {
+          final def = Achievement.getDefById(id);
+          if (def != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🏆 成就解锁：${def.name}'),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
         }
       }
-    }
+    } catch (_) {}
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -133,9 +133,10 @@ class HealthGradeCalculator {
 
   static int _daysInMonth(List<ToiletRecord> records) {
     if (records.isEmpty) return 30;
-    DateTime first =
-        DateTime.fromMillisecondsSinceEpoch(records.first.timestamp);
-    DateTime last = DateTime.fromMillisecondsSinceEpoch(records.last.timestamp);
+    final timestamps = records.map((r) => r.timestamp).toList();
+    timestamps.sort();
+    final first = DateTime.fromMillisecondsSinceEpoch(timestamps.first);
+    final last = DateTime.fromMillisecondsSinceEpoch(timestamps.last);
     return last.difference(first).inDays + 1;
   }
 }

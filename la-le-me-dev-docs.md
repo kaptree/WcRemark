@@ -1,6 +1,6 @@
 # 「拉了么」全栈开发文档 & 功能设计说明书
 
-**版本**：v1.0.8（已构建 APK）  
+**版本**：v1.0.10（已构建 APK）  
 **日期**：2026-05-14  
 **定位**：隐私优先的生理健康记录与轻社交排名应用  
 **文档状态**：与代码同步，可直接用于开发实施
@@ -3583,6 +3583,17 @@ cp build/app/outputs/flutter-apk/app-release.apk "${DIST_DIR}/la-le-me-app-relea
 #### 测验结果
 - `flutter analyze`：✅ 0 errors, 0 warnings（仅 4 个 info lint 为预存在）
 - 成就覆盖率：88 个成就定义 → 102 个成就完整检测逻辑
+
+### 2026-05-14 紧急 Bug 修复（日期格式 + 页面刷新）
+
+**Bug 1：** 成就页 `FormatException: invalid date format` 崩溃 — 新增 `_dateKey()` helper 零补全日期，替换 17 处日期拼接  
+**Bug 2：** 添加记录后页面不刷新 &mdash; `checkAndUnlock` 包裹 try-catch 保证后续 `_refreshData()`/SnackBar 正常执行  
+**验证：** `flutter analyze` 0 errors, 0 warnings
+
+### 2026-05-14 月度统计评级 Bug 修复
+
+**Bug：** 月度统计评级始终 D 级 — `_daysInMonth()` 依赖列表顺序取起止时间，数据库 DESC 排序导致 `frequencyScore=0`，改写为显式时间戳排序。  
+**验证：** `flutter analyze` 0 errors, 0 warnings
 
 ### 2026-05-13 首页优化与统计增强
 

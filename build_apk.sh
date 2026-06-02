@@ -7,7 +7,7 @@ JAVA_HOME="/opt/homebrew/opt/openjdk@17"
 FLUTTER_BIN="/opt/homebrew/opt/flutter/bin"
 DIST_DIR="${PROJECT_ROOT}/dist"
 
-APK_NAME="lalemeV6.apk"
+APK_NAME="lalemeV7.apk"
 
 export ANDROID_HOME
 export JAVA_HOME

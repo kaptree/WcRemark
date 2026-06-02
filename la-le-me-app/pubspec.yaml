@@ -1,6 +1,6 @@
 name: la_le_me_app
 description: 隐私优先的生理健康记录与轻社交排名应用
-version: 1.0.6+1
+version: 1.0.9+1
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

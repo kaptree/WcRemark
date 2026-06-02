@@ -644,7 +644,7 @@ class AchievementService {
             final bt = r.bristolType;
             if (bt != 3 && bt != 4) break;
             final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-            final key = '${dt.year}-${dt.month}-${dt.day}';
+            final key = _dateKey(dt);
             if (!seen.contains(key)) {
               seen.add(key);
               c++;
@@ -660,7 +660,7 @@ class AchievementService {
             final bt = r.bristolType;
             if (bt != 3 && bt != 4) break;
             final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-            final key = '${dt.year}-${dt.month}-${dt.day}';
+            final key = _dateKey(dt);
             if (!seen.contains(key)) {
               seen.add(key);
               c++;
@@ -716,7 +716,7 @@ class AchievementService {
           for (final r in bigRecords.reversed) {
             if ((r.smoothness ?? 0) < 4) break;
             final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-            final key = '${dt.year}-${dt.month}-${dt.day}';
+            final key = _dateKey(dt);
             if (!seen.contains(key)) {
               seen.add(key);
               c++;
@@ -957,7 +957,7 @@ class AchievementService {
     for (final r in bigRecords) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
       if (dt.hour >= 6 && dt.hour <= 9) {
-        days.add('${dt.year}-${dt.month}-${dt.day}');
+        days.add(_dateKey(dt));
       }
     }
     return days.length;
@@ -1011,7 +1011,7 @@ class AchievementService {
     for (final r in bigRecords) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
       if (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday) {
-        weekendDays.add('${dt.year}-${dt.month}-${dt.day}');
+        weekendDays.add(_dateKey(dt));
       }
     }
     return weekendDays.length >= 4;
@@ -1022,7 +1022,7 @@ class AchievementService {
     for (final r in bigRecords) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
       if (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday) {
-        weekendDays.add('${dt.year}-${dt.month}-${dt.day}');
+        weekendDays.add(_dateKey(dt));
       }
     }
     return weekendDays.length;
@@ -1057,7 +1057,7 @@ class AchievementService {
     final days = <String>{};
     for (final r in bigRecords) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      days.add('${dt.year}-${dt.month}-${dt.day}');
+      days.add(_dateKey(dt));
     }
     final sorted = days
         .map((d) => DateTime.parse(d))
@@ -1080,7 +1080,7 @@ class AchievementService {
     final daySet = <String>{};
     for (final r in bigRecords) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      daySet.add('${dt.year}-${dt.month}-${dt.day}');
+      daySet.add(_dateKey(dt));
     }
     final now = DateTime.now();
     final thirtyDaysAgo = now.subtract(const Duration(days: 30));
@@ -1136,7 +1136,7 @@ class AchievementService {
         continue;
       }
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      final dayKey = '${dt.year}-${dt.month}-${dt.day}';
+      final dayKey = _dateKey(dt);
       if (prevDay == null || prevDay != dayKey) {
         consecutive++;
         prevDay = dayKey;
@@ -1159,7 +1159,7 @@ class AchievementService {
         continue;
       }
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      final dayKey = '${dt.year}-${dt.month}-${dt.day}';
+      final dayKey = _dateKey(dt);
       if (prevDay == null || prevDay != dayKey) {
         consecutive++;
         prevDay = dayKey;
@@ -1185,7 +1185,7 @@ class AchievementService {
         continue;
       }
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      final dayKey = '${dt.year}-${dt.month}-${dt.day}';
+      final dayKey = _dateKey(dt);
       if (prevDay == null || prevDay != dayKey) {
         consecutive++;
         prevDay = dayKey;
@@ -1211,7 +1211,7 @@ class AchievementService {
     final days = <String>{};
     for (final r in sorted) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      days.add('${dt.year}-${dt.month}-${dt.day}');
+      days.add(_dateKey(dt));
     }
     return days.length;
   }
@@ -1233,7 +1233,7 @@ class AchievementService {
         continue;
       }
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      final dayKey = '${dt.year}-${dt.month}-${dt.day}';
+      final dayKey = _dateKey(dt);
       if (prevDay == null || prevDay != dayKey) {
         consecutive++;
         prevDay = dayKey;
@@ -1305,7 +1305,7 @@ class AchievementService {
         continue;
       }
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      final dayKey = '${dt.year}-${dt.month}-${dt.day}';
+      final dayKey = _dateKey(dt);
       if (prevDay == null || prevDay != dayKey) {
         consecutive++;
         prevDay = dayKey;
@@ -1375,7 +1375,7 @@ class AchievementService {
     for (final r in allRecords) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
       if (dt.weekday != DateTime.saturday && dt.weekday != DateTime.sunday) continue;
-      final key = '${dt.year}-${dt.month}-${dt.day}';
+      final key = _dateKey(dt);
       if (r.type == RecordType.big) weekendBigDays.add(key);
       if (r.type == RecordType.small) weekendSmallDays.add(key);
     }
@@ -1404,7 +1404,7 @@ class AchievementService {
     Map<String, Set<RecordType>> dayTypes = {};
     for (final r in allRecords) {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
-      final key = '${dt.year}-${dt.month}-${dt.day}';
+      final key = _dateKey(dt);
       dayTypes.putIfAbsent(key, () => {}).add(r.type);
     }
     return dayTypes.values
@@ -1457,7 +1457,7 @@ class AchievementService {
       final dt = DateTime.fromMillisecondsSinceEpoch(r.timestamp);
       final mmdd = '${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
       if (chineseHolidays.contains(mmdd)) {
-        holidayDays.add('${dt.year}-${dt.month}-${dt.day}');
+        holidayDays.add(_dateKey(dt));
       }
     }
     return holidayDays.length;
@@ -1590,6 +1590,9 @@ class AchievementService {
       return 0;
     }
   }
+
+  static String _dateKey(DateTime dt) =>
+      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
 
   static Future<void> _saveUnlock(String id, int timestamp) async {
     try {
